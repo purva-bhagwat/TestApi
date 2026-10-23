@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AlignLeft,
   CheckCircle2,
@@ -13,11 +13,12 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { KeyValuePair, SingleTestRequest } from "@/types/api";
+import { KeyValuePair, SingleTestRequest, SingleTestResponse } from "@/types/api";
 
 interface RequestBuilderProps {
   onSend: (request: SingleTestRequest) => void;
   isLoading: boolean;
+  selectedRun?: SingleTestResponse | null;
 }
 
 const HTTP_METHODS = [
@@ -31,6 +32,7 @@ const HTTP_METHODS = [
 export const RequestBuilder: React.FC<RequestBuilderProps> = ({
   onSend,
   isLoading,
+  selectedRun,
 }) => {
   const [method, setMethod] = useState<string>("GET");
   const [url, setUrl] = useState<string>("https://httpbin.org/get");
@@ -51,6 +53,57 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
     JSON.stringify({ message: "Hello from TestApi!", timestamp: new Date().toISOString() }, null, 2)
   );
   const [bodyError, setBodyError] = useState<string | null>(null);
+
+  // Synchronize when a historical run is selected for replay
+  useEffect(() => {
+    if (!selectedRun) return;
+
+    if (selectedRun.method) setMethod(selectedRun.method.toUpperCase());
+    if (selectedRun.url) setUrl(selectedRun.url);
+
+    // Sync query params
+    if (selectedRun.query_params && Object.keys(selectedRun.query_params).length > 0) {
+      const qp: KeyValuePair[] = Object.entries(selectedRun.query_params).map(([k, v], idx) => ({
+        id: `${Date.now()}_qp_${idx}`,
+        key: k,
+        value: String(v),
+        enabled: true,
+      }));
+      setQueryParams(qp);
+    } else {
+      setQueryParams([]);
+    }
+
+    // Sync headers
+    if (selectedRun.headers && Object.keys(selectedRun.headers).length > 0) {
+      const hdrs: KeyValuePair[] = Object.entries(selectedRun.headers).map(([k, v], idx) => ({
+        id: `${Date.now()}_h_${idx}`,
+        key: k,
+        value: String(v),
+        enabled: true,
+      }));
+      setHeaders(hdrs);
+    } else {
+      setHeaders([]);
+    }
+
+    // Sync body
+    if (selectedRun.body) {
+      try {
+        const parsed = JSON.parse(selectedRun.body);
+        setBodyText(JSON.stringify(parsed, null, 2));
+        setBodyError(null);
+      } catch {
+        setBodyText(selectedRun.body);
+        setBodyError(null);
+      }
+      setActiveTab("body");
+    } else {
+      setBodyText("");
+      setBodyError(null);
+      setActiveTab("params");
+    }
+  }, [selectedRun]);
 
   // Handlers for dynamic key-value rows
   const handleAddParam = () => {

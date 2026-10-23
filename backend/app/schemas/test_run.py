@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -48,3 +48,9 @@ class TestRunResponseSchema(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TestHistoryResponseSchema(BaseModel):
+    """Schema for paginated test run history list."""
+    items: List[TestRunResponseSchema]
+    total: int

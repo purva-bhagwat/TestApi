@@ -16,9 +16,16 @@ import {
   Server,
   Zap,
 } from "lucide-react";
+import HistoryDrawer from "@/components/tester/HistoryDrawer";
 import RequestBuilder from "@/components/tester/RequestBuilder";
 import ResponseViewer from "@/components/tester/ResponseViewer";
-import { executeSingleTest, getHealthStatus, HealthCheckResponse } from "@/lib/api";
+import {
+  clearTestHistory,
+  executeSingleTest,
+  getHealthStatus,
+  getTestHistory,
+  HealthCheckResponse,
+} from "@/lib/api";
 import { SingleTestRequest, SingleTestResponse } from "@/types/api";
 
 export default function HomePage() {
@@ -29,8 +36,15 @@ export default function HomePage() {
 
   // Single API execution state
   const [testResponse, setTestResponse] = useState<SingleTestResponse | null>(null);
+  const [selectedRun, setSelectedRun] = useState<SingleTestResponse | null>(null);
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [executionError, setExecutionError] = useState<string | null>(null);
+
+  // History state
+  const [history, setHistory] = useState<SingleTestResponse[]>([]);
+  const [historyTotal, setHistoryTotal] = useState<number>(0);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
 
   const checkBackendHealth = async () => {
     setHealthLoading(true);
@@ -48,8 +62,41 @@ export default function HomePage() {
     }
   };
 
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const rawData: any = await getTestHistory(30, 0);
+      const historyItems = Array.isArray(rawData) ? rawData : (rawData?.items || []);
+      const totalCount = typeof rawData?.total === "number" ? rawData.total : historyItems.length;
+      setHistory(historyItems);
+      setHistoryTotal(totalCount);
+    } catch (err) {
+      console.warn("Could not load test history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await clearTestHistory();
+      setHistory([]);
+      setHistoryTotal(0);
+      setSelectedRun(null);
+    } catch (err) {
+      console.error("Failed to clear history:", err);
+    }
+  };
+
+  const handleSelectRun = (run: SingleTestResponse) => {
+    setSelectedRun(run);
+    setTestResponse(run);
+    setIsHistoryOpen(false);
+  };
+
   useEffect(() => {
     checkBackendHealth();
+    loadHistory();
   }, []);
 
   const handleExecuteRequest = async (request: SingleTestRequest) => {
@@ -58,6 +105,14 @@ export default function HomePage() {
     try {
       const result = await executeSingleTest(request);
       setTestResponse(result);
+      setSelectedRun(result);
+
+      // Immediately prepend run into local history without page reload
+      setHistory((prev) => [
+        result,
+        ...prev.filter((item) => item.id !== result.id),
+      ]);
+      setHistoryTotal((prev) => prev + 1);
     } catch (err: any) {
       setExecutionError(
         err?.message ||
@@ -75,7 +130,7 @@ export default function HomePage() {
       <div className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 w-[1200px] h-[450px] bg-gradient-to-b from-indigo-600/10 via-cyan-500/5 to-transparent blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-        {/* Top Header & Backend Status Pill */}
+        {/* Top Header & Navigation Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-zinc-800/80">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 mb-2">
@@ -86,12 +141,28 @@ export default function HomePage() {
               Single Endpoint Runner
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Construct REST requests, inspect sub-millisecond network latencies, and automatically persist results.
+              Construct REST requests, inspect sub-millisecond network latencies, and replay test runs.
             </p>
           </div>
 
-          {/* Backend Connectivity Status Badge */}
-          <div className="flex items-center gap-2 self-start md:self-center">
+          {/* Action buttons: Health badge & History Drawer Toggle */}
+          <div className="flex items-center gap-3 self-start md:self-center">
+            {/* History Toggle Button */}
+            <button
+              onClick={() => setIsHistoryOpen((prev) => !prev)}
+              className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800/80 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition shadow-sm"
+              title="Toggle historical test runs"
+            >
+              <History className="h-4 w-4 text-emerald-400" />
+              <span>History</span>
+              {historyTotal > 0 && (
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-semibold text-emerald-400">
+                  {historyTotal}
+                </span>
+              )}
+            </button>
+
+            {/* Backend Connectivity Status Badge */}
             {healthLoading ? (
               <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3.5 py-2 text-xs text-zinc-400">
                 <div className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
@@ -102,7 +173,7 @@ export default function HomePage() {
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span className="font-semibold">Backend Connected</span>
                 <span className="text-[10px] text-emerald-400/80 font-mono hidden sm:inline">
-                  (FastAPI: {health.status})
+                  ({health.status})
                 </span>
               </div>
             ) : (
@@ -125,6 +196,7 @@ export default function HomePage() {
             <RequestBuilder
               onSend={handleExecuteRequest}
               isLoading={isExecuting}
+              selectedRun={selectedRun}
             />
           </div>
 
@@ -145,7 +217,7 @@ export default function HomePage() {
               Platform Workflow & Automation
             </h3>
             <span className="text-xs font-mono text-zinc-500">
-              PostgreSQL 16 • SQLAlchemy 2.0 Async • httpx Engine
+              PostgreSQL 16 • SQLAlchemy 2.0 Async • Replay Engine
             </span>
           </div>
 
@@ -179,15 +251,36 @@ export default function HomePage() {
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono">
                   3
                 </span>
-                <span>Persistent Audit Trail</span>
+                <span>Audit & Instant Replay</span>
               </div>
               <p className="text-zinc-400 leading-relaxed">
-                All headers, query parameters, status codes, and execution timelines are written to PostgreSQL via SQLAlchemy async sessions.
+                All runs are saved to PostgreSQL. Click any historical entry in the drawer to repopulate parameters and re-test immediately.
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* History Drawer Component */}
+      <HistoryDrawer
+        history={history}
+        total={historyTotal}
+        isLoading={historyLoading}
+        selectedRunId={selectedRun?.id}
+        onSelectRun={handleSelectRun}
+        onRefresh={loadHistory}
+        onClear={handleClearHistory}
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      />
+
+      {/* Dark overlay backdrop when drawer is open */}
+      {isHistoryOpen && (
+        <div
+          onClick={() => setIsHistoryOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"
+        />
+      )}
     </div>
   );
 }

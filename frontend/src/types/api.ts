@@ -28,3 +28,8 @@ export interface SingleTestResponse {
   error_message?: string;
   created_at: string;
 }
+
+export interface TestHistoryResponse {
+  items: SingleTestResponse[];
+  total: number;
+}
