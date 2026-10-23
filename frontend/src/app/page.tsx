@@ -9,35 +9,42 @@ import {
   CheckCircle2,
   Database,
   Gauge,
+  History,
   Layers,
   RefreshCw,
   Send,
   Server,
   Zap,
 } from "lucide-react";
-import { getHealthStatus, HealthCheckResponse } from "@/lib/api";
+import RequestBuilder from "@/components/tester/RequestBuilder";
+import ResponseViewer from "@/components/tester/ResponseViewer";
+import { executeSingleTest, getHealthStatus, HealthCheckResponse } from "@/lib/api";
+import { SingleTestRequest, SingleTestResponse } from "@/types/api";
 
 export default function HomePage() {
+  // Backend health status
   const [health, setHealth] = useState<HealthCheckResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastChecked, setLastChecked] = useState<string | null>(null);
+  const [healthLoading, setHealthLoading] = useState<boolean>(true);
+  const [healthError, setHealthError] = useState<string | null>(null);
+
+  // Single API execution state
+  const [testResponse, setTestResponse] = useState<SingleTestResponse | null>(null);
+  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   const checkBackendHealth = async () => {
-    setLoading(true);
-    setError(null);
+    setHealthLoading(true);
+    setHealthError(null);
     try {
       const data = await getHealthStatus();
       setHealth(data);
     } catch (err: any) {
-      setError(
-        err?.message ||
-          "Unable to connect to backend service at http://localhost:8000"
+      setHealthError(
+        err?.message || "Backend unreachable at http://localhost:8000"
       );
       setHealth(null);
     } finally {
-      setLoading(false);
-      setLastChecked(new Date().toLocaleTimeString());
+      setHealthLoading(false);
     }
   };
 
@@ -45,209 +52,138 @@ export default function HomePage() {
     checkBackendHealth();
   }, []);
 
+  const handleExecuteRequest = async (request: SingleTestRequest) => {
+    setIsExecuting(true);
+    setExecutionError(null);
+    try {
+      const result = await executeSingleTest(request);
+      setTestResponse(result);
+    } catch (err: any) {
+      setExecutionError(
+        err?.message ||
+          "Failed to execute API request. Make sure the backend server is running."
+      );
+      setTestResponse(null);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
   return (
-    <div className="relative isolate overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-indigo-500/10 via-cyan-500/5 to-transparent blur-3xl pointer-events-none" />
+    <div className="relative isolate min-h-screen overflow-hidden pb-16">
+      {/* Dynamic Ambient Background Glows */}
+      <div className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 w-[1200px] h-[450px] bg-gradient-to-b from-indigo-600/10 via-cyan-500/5 to-transparent blur-3xl pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 mb-4">
-            <Zap className="h-3.5 w-3.5 text-indigo-400" />
-            <span>Final-Year Engineering Project Architecture</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-            API Testing & Performance{" "}
-            <span className="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              Analysis Platform
-            </span>
-          </h1>
-          <p className="text-base sm:text-lg text-zinc-400">
-            A high-throughput monorepo architecture engineered for single endpoint
-            diagnostics, distributed load generation, and real-time latency analytics.
-          </p>
-        </div>
-
-        {/* Backend Connectivity Status Card */}
-        <div className="mx-auto max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 backdrop-blur-xl shadow-2xl mb-12">
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-800/80 border border-zinc-700">
-                <Server className="h-5 w-5 text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-white">
-                  FastAPI Backend Gateway
-                </h3>
-                <p className="text-xs text-zinc-400 font-mono">
-                  GET /api/v1/health • http://localhost:8000
-                </p>
-              </div>
+      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        {/* Top Header & Backend Status Pill */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-zinc-800/80">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 mb-2">
+              <Zap className="h-3.5 w-3.5 text-indigo-400" />
+              <span>Interactive API Testing Console</span>
             </div>
-
-            <button
-              onClick={checkBackendHealth}
-              disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 text-zinc-400 ${
-                  loading ? "animate-spin" : ""
-                }`}
-              />
-              <span>Refresh</span>
-            </button>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Single Endpoint Runner
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+              Construct REST requests, inspect sub-millisecond network latencies, and automatically persist results.
+            </p>
           </div>
 
-          <div className="pt-5">
-            {loading ? (
-              <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
-                <div className="h-3 w-3 rounded-full bg-amber-400 animate-ping" />
-                <span className="text-sm text-zinc-300">
-                  Pinging backend health check endpoint...
-                </span>
+          {/* Backend Connectivity Status Badge */}
+          <div className="flex items-center gap-2 self-start md:self-center">
+            {healthLoading ? (
+              <div className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3.5 py-2 text-xs text-zinc-400">
+                <div className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+                <span>Checking gateway...</span>
               </div>
             ) : health ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-emerald-300">
-                        Connected Successfully
-                      </span>
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-mono text-emerald-400 border border-emerald-500/20">
-                        HTTP 200 OK
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400">
-                      Backend app:{" "}
-                      <span className="font-mono text-zinc-200">
-                        {health.app}
-                      </span>{" "}
-                      | Status:{" "}
-                      <span className="font-mono text-zinc-200">
-                        {health.status}
-                      </span>
-                    </p>
-                    {lastChecked && (
-                      <p className="text-[11px] text-zinc-500">
-                        Last ping: {lastChecked}
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="font-semibold">Backend Connected</span>
+                <span className="text-[10px] text-emerald-400/80 font-mono hidden sm:inline">
+                  (FastAPI: {health.status})
+                </span>
               </div>
             ) : (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-rose-400 flex-shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-rose-300">
-                        Backend Unreachable
-                      </span>
-                      <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-mono text-rose-400 border border-rose-500/20">
-                        Connection Refused
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400">
-                      Start the FastAPI backend with:{" "}
-                      <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-200">
-                        uvicorn app.main:app --reload
-                      </code>
-                    </p>
-                    {error && (
-                      <p className="text-[11px] font-mono text-rose-400/90 pt-1">
-                        {error}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={checkBackendHealth}
+                className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs text-rose-300 hover:bg-rose-500/20 transition cursor-pointer"
+                title="Click to retry connecting to backend"
+              >
+                <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                <span>Backend Offline (Retry)</span>
+              </button>
             )}
           </div>
         </div>
 
-        {/* Modular Architecture Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
-          <div className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition-all hover:border-indigo-500/50 hover:bg-zinc-900/60">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-4 group-hover:scale-110 transition-transform">
-              <Send className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Single API Tester
-            </h3>
-            <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
-              Execute parameterized REST calls with customizable headers, body payloads,
-              query strings, and inspect millisecond-level response timelines.
-            </p>
-            <div className="flex items-center text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">
-              <span>Endpoint Module</span>
-              <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </div>
+        {/* Main Interactive Studio Grid: RequestBuilder & ResponseViewer */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          {/* Left Column: Request Builder */}
+          <div className="h-full">
+            <RequestBuilder
+              onSend={handleExecuteRequest}
+              isLoading={isExecuting}
+            />
           </div>
 
-          {/* Card 2 */}
-          <div className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition-all hover:border-cyan-500/50 hover:bg-zinc-900/60">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-4 group-hover:scale-110 transition-transform">
-              <Gauge className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Load & Stress Testing
-            </h3>
-            <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
-              Simulate concurrent virtual users (RPS / concurrency curves), analyze
-              p95/p99 latency percentiles, error rates, and throughput bottlenecks.
-            </p>
-            <div className="flex items-center text-xs font-semibold text-cyan-400 group-hover:text-cyan-300">
-              <span>Performance Engine</span>
-              <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition-all hover:border-emerald-500/50 hover:bg-zinc-900/60">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4 group-hover:scale-110 transition-transform">
-              <Database className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">
-              PostgreSQL & Async Session
-            </h3>
-            <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
-              Configured via Docker Compose, SQLAlchemy 2.0 with asyncpg driver, and
-              Alembic for persistent test run records and benchmark telemetry.
-            </p>
-            <div className="flex items-center text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">
-              <span>Persistence Layer</span>
-              <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </div>
+          {/* Right Column: Response Viewer */}
+          <div className="h-full">
+            <ResponseViewer
+              response={testResponse}
+              isLoading={isExecuting}
+              error={executionError}
+            />
           </div>
         </div>
 
-        {/* Stack Quick Reference */}
-        <div className="mt-12 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-4">
-            Monorepo Stack Specifications
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-              <p className="text-zinc-500">Frontend</p>
-              <p className="text-zinc-200 font-semibold mt-1">Next.js 14 / App Router</p>
+        {/* Platform Architecture & Features Info Banner */}
+        <div className="mt-12 rounded-2xl border border-zinc-800/80 bg-zinc-900/30 p-6 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Platform Workflow & Automation
+            </h3>
+            <span className="text-xs font-mono text-zinc-500">
+              PostgreSQL 16 • SQLAlchemy 2.0 Async • httpx Engine
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+              <div className="flex items-center gap-2 font-semibold text-zinc-200 mb-1">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 text-[10px] font-mono">
+                  1
+                </span>
+                <span>Asynchronous Dispatch</span>
+              </div>
+              <p className="text-zinc-400 leading-relaxed">
+                FastAPI dispatches non-blocking requests using connection-pooled HTTPX clients with configurable timeouts.
+              </p>
             </div>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-              <p className="text-zinc-500">Backend API</p>
-              <p className="text-zinc-200 font-semibold mt-1">FastAPI + Pydantic v2</p>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+              <div className="flex items-center gap-2 font-semibold text-zinc-200 mb-1">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-mono">
+                  2
+                </span>
+                <span>Sub-Millisecond Timing</span>
+              </div>
+              <p className="text-zinc-400 leading-relaxed">
+                Precision monotonic timers (<code className="text-zinc-300">time.perf_counter</code>) capture true network and payload transfer latencies.
+              </p>
             </div>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-              <p className="text-zinc-500">ORM & Driver</p>
-              <p className="text-zinc-200 font-semibold mt-1">SQLAlchemy 2.0 / asyncpg</p>
-            </div>
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-              <p className="text-zinc-500">Database</p>
-              <p className="text-zinc-200 font-semibold mt-1">PostgreSQL 16 (Docker)</p>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+              <div className="flex items-center gap-2 font-semibold text-zinc-200 mb-1">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono">
+                  3
+                </span>
+                <span>Persistent Audit Trail</span>
+              </div>
+              <p className="text-zinc-400 leading-relaxed">
+                All headers, query parameters, status codes, and execution timelines are written to PostgreSQL via SQLAlchemy async sessions.
+              </p>
             </div>
           </div>
         </div>
