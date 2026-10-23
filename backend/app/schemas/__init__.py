@@ -1,5 +1,6 @@
 """Pydantic schemas module."""
 from pydantic import BaseModel
+from app.schemas.test_run import TestRunCreateSchema, TestRunResponseSchema
 
 
 class HealthResponse(BaseModel):
@@ -7,4 +8,8 @@ class HealthResponse(BaseModel):
     app: str
 
 
-__all__ = ["HealthResponse"]
+__all__ = [
+    "HealthResponse",
+    "TestRunCreateSchema",
+    "TestRunResponseSchema",
+]
