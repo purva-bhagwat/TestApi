@@ -1,5 +1,11 @@
 """Pydantic schemas module."""
 from pydantic import BaseModel
+from app.schemas.load_balancer import (
+    LoadBalancerConfigSchema,
+    LoadBalancerResultSchema,
+    ServerMetrics,
+    UpstreamServerConfig,
+)
 from app.schemas.load_test import (
     LoadTestConfigSchema,
     LoadTestHistoryResponseSchema,
@@ -25,4 +31,8 @@ __all__ = [
     "LoadTestConfigSchema",
     "LoadTestMetricsResponseSchema",
     "LoadTestHistoryResponseSchema",
+    "UpstreamServerConfig",
+    "LoadBalancerConfigSchema",
+    "ServerMetrics",
+    "LoadBalancerResultSchema",
 ]
