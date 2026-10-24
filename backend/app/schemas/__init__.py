@@ -11,6 +11,14 @@ from app.schemas.load_test import (
     LoadTestHistoryResponseSchema,
     LoadTestMetricsResponseSchema,
 )
+from app.schemas.project import (
+    ProjectCreate,
+    ProjectResponse,
+    ProjectUpdate,
+    SavedEndpointCreate,
+    SavedEndpointResponse,
+    SavedEndpointUpdate,
+)
 from app.schemas.test_run import (
     TestHistoryResponseSchema,
     TestRunCreateSchema,
@@ -35,4 +43,10 @@ __all__ = [
     "LoadBalancerConfigSchema",
     "ServerMetrics",
     "LoadBalancerResultSchema",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "SavedEndpointCreate",
+    "SavedEndpointUpdate",
+    "SavedEndpointResponse",
 ]

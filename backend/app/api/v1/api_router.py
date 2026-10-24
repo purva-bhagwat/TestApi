@@ -3,6 +3,7 @@ from app.api.v1.endpoints import (
     health,
     load_balancer,
     load_runner,
+    projects,
     sample_target,
     test_runner,
 )
@@ -18,4 +19,7 @@ api_router.include_router(
 )
 api_router.include_router(
     sample_target.router, prefix="/mock-target", tags=["Self-Hosted Mock Target"]
+)
+api_router.include_router(
+    projects.router, prefix="/projects", tags=["Projects & Collections"]
 )
