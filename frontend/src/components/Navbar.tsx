@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Activity, Gauge, History, Send, Zap } from "lucide-react";
+import { Activity, Gauge, History, Network, Send, Zap } from "lucide-react";
 
 export const Navbar: React.FC = () => {
   return (
@@ -39,6 +39,13 @@ export const Navbar: React.FC = () => {
           >
             <Gauge className="h-4 w-4 text-cyan-400" />
             Load Testing
+          </Link>
+          <Link
+            href="/load-balancer"
+            className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+          >
+            <Network className="h-4 w-4 text-amber-400" />
+            Load Balancer
           </Link>
           <Link
             href="/history"

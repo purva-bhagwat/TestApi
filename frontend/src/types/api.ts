@@ -67,3 +67,33 @@ export interface LoadTestHistoryResponse {
   items: LoadTestMetricsResponse[];
   total: number;
 }
+
+export interface UpstreamServer {
+  url: string;
+  weight: number;
+  is_healthy: boolean;
+}
+
+export interface LoadBalancerConfig {
+  servers: UpstreamServer[];
+  algorithm: "round_robin" | "weighted_round_robin" | "least_connections";
+  concurrent_users: number;
+  total_requests: number;
+  timeout_seconds: number;
+}
+
+export interface ServerMetrics {
+  url: string;
+  total_dispatched: number;
+  success_count: number;
+  failure_count: number;
+  avg_latency_ms: number;
+}
+
+export interface LoadBalancerResult {
+  algorithm: string;
+  total_requests: number;
+  total_duration_seconds: number;
+  overall_rps: number;
+  server_distribution: Record<string, ServerMetrics>;
+}

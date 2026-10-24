@@ -296,14 +296,14 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
         </div>
 
         {/* URL Input */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <input
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
             placeholder="https://api.example.com/v1/resource"
-            className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950/70 px-4 py-2.5 text-xs font-mono text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+            className="w-full overflow-x-auto text-left rounded-xl border border-zinc-700/80 bg-zinc-950/70 px-4 py-2.5 text-xs font-mono text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
           />
         </div>
 

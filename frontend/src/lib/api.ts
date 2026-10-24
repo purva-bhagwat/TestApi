@@ -1,4 +1,6 @@
 import {
+  LoadBalancerConfig,
+  LoadBalancerResult,
   LoadTestConfig,
   LoadTestHistoryResponse,
   LoadTestMetricsResponse,
@@ -177,4 +179,37 @@ export async function getLoadTestHistory(
   const total = typeof rawData?.total === "number" ? rawData.total : items.length;
 
   return { items, total };
+}
+
+/**
+ * Dispatch load-balanced simulation batch via FastAPI backend (/api/v1/load-balancer/simulate)
+ */
+export async function simulateLoadBalancer(
+  config: LoadBalancerConfig
+): Promise<LoadBalancerResult> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/load-balancer/simulate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(config),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Load balancer simulation failed with status ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) {
+        errorMessage =
+          typeof errorData.detail === "string"
+            ? errorData.detail
+            : JSON.stringify(errorData.detail);
+      }
+    } catch {
+      // Fallback
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }
