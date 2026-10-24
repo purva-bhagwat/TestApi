@@ -1,4 +1,7 @@
 import {
+  LoadTestConfig,
+  LoadTestHistoryResponse,
+  LoadTestMetricsResponse,
   SingleTestRequest,
   SingleTestResponse,
   TestHistoryResponse,
@@ -111,4 +114,67 @@ export async function clearTestHistory(): Promise<{ message: string }> {
   }
 
   return response.json();
+}
+
+/**
+ * Start a concurrent load test via FastAPI backend (/api/v1/load-test/start)
+ */
+export async function startLoadTest(
+  config: LoadTestConfig
+): Promise<LoadTestMetricsResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/load-test/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(config),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Load test failed with status ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.detail) {
+        errorMessage =
+          typeof errorData.detail === "string"
+            ? errorData.detail
+            : JSON.stringify(errorData.detail);
+      }
+    } catch {
+      // Fallback
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch historical load test sessions from FastAPI backend (/api/v1/load-test/history)
+ */
+export async function getLoadTestHistory(
+  limit: number = 20,
+  offset: number = 0
+): Promise<LoadTestHistoryResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/load-test/history?limit=${limit}&offset=${offset}`,
+    {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch load test history with status: ${response.status}`
+    );
+  }
+
+  const rawData = await response.json();
+  const items = Array.isArray(rawData) ? rawData : (rawData?.items || []);
+  const total = typeof rawData?.total === "number" ? rawData.total : items.length;
+
+  return { items, total };
 }

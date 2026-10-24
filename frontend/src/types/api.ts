@@ -33,3 +33,37 @@ export interface TestHistoryResponse {
   items: SingleTestResponse[];
   total: number;
 }
+
+export interface LoadTestConfig {
+  url: string;
+  method: string;
+  concurrent_users: number;
+  total_requests: number;
+  timeout_seconds: number;
+  headers?: Record<string, string>;
+  body?: any;
+}
+
+export interface LoadTestMetricsResponse {
+  id: string;
+  url: string;
+  method: string;
+  status: string;
+  total_requests: number;
+  successful_requests: number;
+  failed_requests: number;
+  rps: number;
+  avg_latency_ms: number;
+  min_latency_ms: number;
+  max_latency_ms: number;
+  p50_latency_ms: number;
+  p90_latency_ms: number;
+  p99_latency_ms: number;
+  status_code_distribution: Record<string, number>;
+  created_at: string;
+}
+
+export interface LoadTestHistoryResponse {
+  items: LoadTestMetricsResponse[];
+  total: number;
+}
