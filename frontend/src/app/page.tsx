@@ -20,18 +20,19 @@ import HistoryDrawer from "@/components/tester/HistoryDrawer";
 import RequestBuilder from "@/components/tester/RequestBuilder";
 import ResponseViewer from "@/components/tester/ResponseViewer";
 import EndpointsSidebar from "@/components/workspaces/EndpointsSidebar";
-import WorkspaceSelector from "@/components/workspaces/WorkspaceSelector";
 import {
   clearTestHistory,
   executeSingleTest,
   getHealthStatus,
-  getProjects,
   getTestHistory,
   HealthCheckResponse,
 } from "@/lib/api";
-import { Project, SavedEndpoint, SingleTestRequest, SingleTestResponse } from "@/types/api";
+import { SavedEndpoint, SingleTestRequest, SingleTestResponse } from "@/types/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 export default function HomePage() {
+  const { projects, activeProject, refreshProjects } = useWorkspace();
+
   // Backend health status
   const [health, setHealth] = useState<HealthCheckResponse | null>(null);
   const [healthLoading, setHealthLoading] = useState<boolean>(true);
@@ -44,8 +45,6 @@ export default function HomePage() {
   const [executionError, setExecutionError] = useState<string | null>(null);
 
   // Workspaces & Collections State
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedEndpointId, setSelectedEndpointId] = useState<string | undefined>(undefined);
   const [populatedEndpoint, setPopulatedEndpoint] = useState<{
     endpoint: SavedEndpoint;
@@ -91,24 +90,6 @@ export default function HomePage() {
     }
   };
 
-  const loadProjects = async () => {
-    try {
-      const projs = await getProjects();
-      setProjects(projs);
-
-      // Keep selected project updated with fresh endpoints
-      if (selectedProject) {
-        const updated = projs.find((p) => p.id === selectedProject.id);
-        setSelectedProject(updated || null);
-      } else if (projs.length > 0 && selectedProject === null) {
-        // Auto-select first project if available
-        setSelectedProject(projs[0]);
-      }
-    } catch (err) {
-      console.warn("Could not load workspaces:", err);
-    }
-  };
-
   const handleClearHistory = async () => {
     try {
       await clearTestHistory();
@@ -138,7 +119,6 @@ export default function HomePage() {
   useEffect(() => {
     checkBackendHealth();
     loadHistory();
-    loadProjects();
   }, []);
 
   const handleExecuteRequest = async (request: SingleTestRequest) => {
@@ -188,18 +168,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Action Bar: Workspace Selector, History Drawer Toggle, Health Badge */}
+            {/* Action Bar: History Drawer Toggle, Health Badge */}
             <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center">
-              {/* Workspace Selector Dropdown */}
-              <WorkspaceSelector
-                projects={projects}
-                selectedProject={selectedProject}
-                onSelectProject={(proj) => {
-                  setSelectedProject(proj);
-                  setSelectedEndpointId(undefined);
-                }}
-                onRefreshProjects={loadProjects}
-              />
 
               {/* History Toggle Button */}
               <button
@@ -249,11 +219,11 @@ export default function HomePage() {
       <div className="flex flex-1 min-h-[calc(100vh-140px)]">
         {/* Collapsible Left Endpoints Sidebar */}
         <EndpointsSidebar
-          project={selectedProject}
+          project={activeProject}
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen((prev) => !prev)}
           onSelectEndpoint={handleSelectEndpoint}
-          onRefreshProject={loadProjects}
+          onRefreshProject={refreshProjects}
           selectedEndpointId={selectedEndpointId}
         />
 
@@ -267,9 +237,9 @@ export default function HomePage() {
                   onSend={handleExecuteRequest}
                   isLoading={isExecuting}
                   selectedRun={selectedRun}
-                  activeProject={selectedProject}
+                  activeProject={activeProject}
                   projects={projects}
-                  onEndpointSaved={loadProjects}
+                  onEndpointSaved={refreshProjects}
                   populatedEndpoint={populatedEndpoint}
                 />
               </div>

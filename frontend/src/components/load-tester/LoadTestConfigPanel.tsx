@@ -1,21 +1,24 @@
-"use client";
-
 import React, { useState } from "react";
 import {
+  Bookmark,
   ChevronDown,
   ChevronUp,
   Flame,
+  FolderKanban,
   Gauge,
+  Globe,
   Layers,
   Loader2,
   Play,
   Plus,
   Sliders,
+  Sparkles,
   Trash2,
   Users,
   Zap,
 } from "lucide-react";
-import { KeyValuePair, LoadTestConfig } from "@/types/api";
+import { KeyValuePair, LoadTestConfig, SavedEndpoint } from "@/types/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 interface LoadTestConfigPanelProps {
   onStart: (config: LoadTestConfig) => void;
@@ -33,11 +36,14 @@ export const LoadTestConfigPanel: React.FC<LoadTestConfigPanelProps> = ({
   onStart,
   isLoading,
 }) => {
+  const { activeProject, activeEndpoints } = useWorkspace();
+
   const [url, setUrl] = useState<string>("https://httpbin.org/get");
   const [method, setMethod] = useState<string>("GET");
   const [concurrentUsers, setConcurrentUsers] = useState<number>(10);
   const [totalRequests, setTotalRequests] = useState<number>(50);
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(10);
+  const [selectedEndpointId, setSelectedEndpointId] = useState<string>("");
 
   // Accordion toggle
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
@@ -74,6 +80,44 @@ export const LoadTestConfigPanel: React.FC<LoadTestConfigPanelProps> = ({
   const applyPreset = (vus: number, reqs: number) => {
     setConcurrentUsers(vus);
     setTotalRequests(reqs);
+  };
+
+  const handleSelectFromCollection = (endpointId: string) => {
+    setSelectedEndpointId(endpointId);
+    if (!endpointId) return;
+
+    const endpoint = activeEndpoints.find((ep) => ep.id === endpointId);
+    if (!endpoint) return;
+
+    let full = endpoint.path.trim();
+    if (!full.startsWith("http://") && !full.startsWith("https://")) {
+      const base = activeProject?.base_url?.trim() || "";
+      if (base) {
+        full = `${base.replace(/\/+$/, "")}/${full.replace(/^\/+/, "")}`;
+      }
+    }
+    setUrl(full);
+    setMethod(endpoint.method.toUpperCase());
+
+    if (endpoint.headers && Object.keys(endpoint.headers).length > 0) {
+      const hdrs: KeyValuePair[] = Object.entries(endpoint.headers).map(([k, v], idx) => ({
+        id: `${Date.now()}_hdr_${idx}`,
+        key: k,
+        value: String(v),
+        enabled: true,
+      }));
+      setHeaders(hdrs);
+      setShowAdvanced(true);
+    }
+
+    if (endpoint.body !== null && endpoint.body !== undefined) {
+      setBodyText(
+        typeof endpoint.body === "string"
+          ? endpoint.body
+          : JSON.stringify(endpoint.body, null, 2)
+      );
+      setShowAdvanced(true);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -154,6 +198,39 @@ export const LoadTestConfigPanel: React.FC<LoadTestConfigPanelProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        {/* Collection Quick Picker Bar */}
+        <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs">
+            <Bookmark className="h-4 w-4 text-indigo-400 shrink-0" />
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-zinc-300">Workspace Collection:</span>
+              <span className="rounded-md bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 text-[11px] font-mono text-indigo-300">
+                {activeProject ? activeProject.name : "No Workspace Selected"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-zinc-400 whitespace-nowrap">Target Endpoint:</span>
+            <select
+              value={selectedEndpointId}
+              onChange={(e) => handleSelectFromCollection(e.target.value)}
+              disabled={activeEndpoints.length === 0}
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-100 outline-none focus:border-cyan-500 disabled:opacity-50 transition cursor-pointer max-w-[240px]"
+            >
+              <option value="">
+                {activeEndpoints.length === 0
+                  ? "No saved endpoints"
+                  : "-- Select from Collection --"}
+              </option>
+              {activeEndpoints.map((ep) => (
+                <option key={ep.id} value={ep.id}>
+                  [{ep.method}] {ep.name} ({ep.path})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         {/* Method & URL Input Bar */}
         <div className="flex flex-col sm:flex-row items-stretch gap-2">
           {/* Method Select */}

@@ -4,8 +4,11 @@ import React, { useState } from "react";
 import {
   Activity,
   AlertCircle,
+  Bookmark,
   CheckCircle2,
   Cpu,
+  FolderKanban,
+  Globe,
   Layers,
   Loader2,
   Network,
@@ -13,11 +16,13 @@ import {
   Plus,
   Server,
   Sliders,
+  Sparkles,
   Trash2,
   Users,
   Zap,
 } from "lucide-react";
 import { LoadBalancerConfig, UpstreamServer } from "@/types/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 interface ServerClusterConfigProps {
   onSimulate: (config: LoadBalancerConfig) => void;
@@ -50,6 +55,8 @@ export const ServerClusterConfig: React.FC<ServerClusterConfigProps> = ({
   onSimulate,
   isLoading,
 }) => {
+  const { activeProject } = useWorkspace();
+
   const [algorithm, setAlgorithm] = useState<
     "round_robin" | "weighted_round_robin" | "least_connections"
   >("weighted_round_robin");
@@ -121,6 +128,34 @@ export const ServerClusterConfig: React.FC<ServerClusterConfigProps> = ({
     }
   };
 
+  const applyWorkspacePreset = () => {
+    if (!activeProject) return;
+    const base = activeProject.base_url?.trim() || "http://127.0.0.1:8000";
+    const cleanBase = base.replace(/\/+$/, "");
+
+    if (activeProject.endpoints && activeProject.endpoints.length >= 2) {
+      const eps = activeProject.endpoints.slice(0, 4);
+      setServers(
+        eps.map((ep, idx) => ({
+          url: ep.path.startsWith("http")
+            ? ep.path
+            : `${cleanBase}/${ep.path.replace(/^\/+/, "")}`,
+          weight: Math.max(4 - idx, 1),
+          is_healthy: true,
+        }))
+      );
+    } else {
+      // Local mock cluster endpoints based on workspace base_url
+      setServers([
+        { url: `${cleanBase}/api/v1/mock-target/items`, weight: 3, is_healthy: true },
+        { url: `${cleanBase}/api/v1/health`, weight: 2, is_healthy: true },
+        { url: `${cleanBase}/api/v1/mock-target/items/1`, weight: 1, is_healthy: true },
+      ]);
+    }
+    setAlgorithm("weighted_round_robin");
+    setTotalRequests(35);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const healthyCount = servers.filter((s) => s.is_healthy).length;
@@ -153,8 +188,19 @@ export const ServerClusterConfig: React.FC<ServerClusterConfigProps> = ({
         </div>
 
         {/* Quick Presets */}
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="text-[11px] text-zinc-500 mr-1 hidden sm:inline">Presets:</span>
+          {activeProject && (
+            <button
+              type="button"
+              onClick={applyWorkspacePreset}
+              className="flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-300 hover:bg-amber-500/20 transition shadow-sm"
+              title={`Load cluster targets from ${activeProject.name} (${activeProject.base_url || 'local'})`}
+            >
+              <Bookmark className="h-3 w-3 text-amber-400" />
+              <span>{activeProject.name} Presets</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => applyPreset("equal")}
