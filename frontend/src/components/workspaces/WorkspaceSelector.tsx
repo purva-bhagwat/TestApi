@@ -145,7 +145,7 @@ export default function WorkspaceSelector({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-80 sm:w-96 rounded-2xl border border-zinc-800 bg-zinc-900/95 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl border border-zinc-800 bg-zinc-900 p-2 shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/80 mb-1">
             <div className="flex items-center gap-2">
               <Layers className="h-3.5 w-3.5 text-indigo-400" />
@@ -273,7 +273,7 @@ export default function WorkspaceSelector({
 
       {/* New Project Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
               <div className="flex items-center gap-2">

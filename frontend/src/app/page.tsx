@@ -167,12 +167,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden pb-16 flex flex-col">
+    <div className="relative isolate min-h-screen pb-16 flex flex-col">
       {/* Dynamic Ambient Background Glows */}
       <div className="absolute top-0 left-1/2 -z-10 -translate-x-1/2 w-[1200px] h-[450px] bg-gradient-to-b from-indigo-600/10 via-cyan-500/5 to-transparent blur-3xl pointer-events-none" />
 
       {/* Top Header & Navigation Actions */}
-      <div className="border-b border-zinc-800/80 bg-zinc-950/40 backdrop-blur-md">
+      <div className="border-b border-zinc-800/80 bg-zinc-950/60 backdrop-blur-md relative z-30">
         <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
