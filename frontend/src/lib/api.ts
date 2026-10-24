@@ -4,6 +4,8 @@ import {
   LoadTestConfig,
   LoadTestHistoryResponse,
   LoadTestMetricsResponse,
+  Project,
+  SavedEndpoint,
   SingleTestRequest,
   SingleTestResponse,
   TestHistoryResponse,
@@ -209,6 +211,146 @@ export async function simulateLoadBalancer(
       // Fallback
     }
     throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch all workspace projects (/api/v1/projects)
+ */
+export async function getProjects(): Promise<Project[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/projects`, {
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch projects with status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a new workspace project (/api/v1/projects)
+ */
+export async function createProject(data: {
+  name: string;
+  description?: string;
+  base_url?: string;
+}): Promise<Project> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/projects`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Failed to create project with status: ${response.status}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMessage = typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail);
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get project details with all saved endpoints (/api/v1/projects/{project_id})
+ */
+export async function getProject(projectId: string): Promise<Project> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/projects/${projectId}`, {
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch project details: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a workspace project (/api/v1/projects/{project_id})
+ */
+export async function deleteProject(
+  projectId: string
+): Promise<{ message: string; id: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/projects/${projectId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete project: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Save an endpoint under a project (/api/v1/projects/{project_id}/endpoints)
+ */
+export async function createSavedEndpoint(
+  projectId: string,
+  data: {
+    name: string;
+    method: string;
+    path: string;
+    headers?: Record<string, string>;
+    body?: any;
+  }
+): Promise<SavedEndpoint> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/projects/${projectId}/endpoints`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Failed to save endpoint with status: ${response.status}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMessage = typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail);
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a saved endpoint (/api/v1/projects/endpoints/{endpoint_id})
+ */
+export async function deleteSavedEndpoint(
+  endpointId: string
+): Promise<{ message: string; id: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/projects/endpoints/${endpointId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete endpoint: ${response.status}`);
   }
 
   return response.json();

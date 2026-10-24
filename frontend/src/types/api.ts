@@ -97,3 +97,23 @@ export interface LoadBalancerResult {
   overall_rps: number;
   server_distribution: Record<string, ServerMetrics>;
 }
+
+export interface SavedEndpoint {
+  id: string;
+  project_id: string;
+  name: string;
+  method: string;
+  path: string;
+  headers?: Record<string, string>;
+  body?: any;
+  created_at: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  base_url: string;
+  created_at: string;
+  endpoints?: SavedEndpoint[];
+}
