@@ -2,12 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Gauge, History, Network, Send, Zap } from "lucide-react";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import WorkspaceSelector from "@/components/workspaces/WorkspaceSelector";
 
 export const Navbar: React.FC = () => {
+  const pathname = usePathname();
   const { projects, activeProject, selectProject, refreshProjects } = useWorkspace();
+
+  const navLinks = [
+    { href: "/", label: "Single API Tester", icon: Send, color: "text-indigo-400" },
+    { href: "/load-testing", label: "Load Testing", icon: Gauge, color: "text-cyan-400" },
+    { href: "/load-balancer", label: "Load Balancer", icon: Network, color: "text-amber-400" },
+    { href: "/history", label: "History", icon: History, color: "text-emerald-400" },
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
@@ -30,34 +39,24 @@ export const Navbar: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-1">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            <Send className="h-4 w-4 text-indigo-400" />
-            Single API Tester
-          </Link>
-          <Link
-            href="/load-testing"
-            className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            <Gauge className="h-4 w-4 text-cyan-400" />
-            Load Testing
-          </Link>
-          <Link
-            href="/load-balancer"
-            className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            <Network className="h-4 w-4 text-amber-400" />
-            Load Balancer
-          </Link>
-          <Link
-            href="/history"
-            className="flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            <History className="h-4 w-4 text-emerald-400" />
-            History
-          </Link>
+          {navLinks.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-zinc-800/90 text-white shadow-sm ring-1 ring-zinc-700/60"
+                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${isActive ? item.color : "text-zinc-500"}`} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Status / Workspace Actions */}

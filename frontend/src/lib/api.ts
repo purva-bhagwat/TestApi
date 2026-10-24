@@ -4,7 +4,9 @@ import {
   LoadTestConfig,
   LoadTestHistoryResponse,
   LoadTestMetricsResponse,
+  PaginatedHistoryResponse,
   Project,
+  RunComparisonResponse,
   SavedEndpoint,
   SingleTestRequest,
   SingleTestResponse,
@@ -354,4 +356,79 @@ export async function deleteSavedEndpoint(
   }
 
   return response.json();
+}
+
+/**
+ * Fetch unified test execution history (/api/v1/history)
+ */
+export async function getUnifiedHistory(params: {
+  page?: number;
+  page_size?: number;
+  test_type?: string;
+  project_id?: string;
+  status?: string;
+}): Promise<PaginatedHistoryResponse> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", params.page.toString());
+  if (params.page_size) query.set("page_size", params.page_size.toString());
+  if (params.test_type && params.test_type !== "all") query.set("test_type", params.test_type);
+  if (params.project_id) query.set("project_id", params.project_id);
+  if (params.status && params.status !== "all") query.set("status", params.status);
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/history?${query.toString()}`, {
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch history with status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Compare two test runs (/api/v1/history/compare)
+ */
+export async function compareRuns(
+  runAId: string,
+  runBId: string
+): Promise<RunComparisonResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/history/compare?run_a_id=${runAId}&run_b_id=${runBId}`,
+    {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = `Failed to compare runs: status ${response.status}`;
+    try {
+      const err = await response.json();
+      if (err.detail) errorMessage = err.detail;
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Build URL to export history dataset (/api/v1/history/export)
+ */
+export function getExportUrl(params: {
+  format: "json" | "csv";
+  test_type?: string;
+  project_id?: string;
+}): string {
+  const query = new URLSearchParams();
+  query.set("format", params.format);
+  if (params.test_type && params.test_type !== "all") query.set("test_type", params.test_type);
+  if (params.project_id) query.set("project_id", params.project_id);
+  return `${API_BASE_URL}/api/v1/history/export?${query.toString()}`;
 }

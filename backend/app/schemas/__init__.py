@@ -1,5 +1,11 @@
 """Pydantic schemas module."""
 from pydantic import BaseModel
+from app.schemas.analytics import (
+    MetricComparison,
+    PaginatedHistoryResponse,
+    RunComparisonResponse,
+    UnifiedHistoryItem,
+)
 from app.schemas.load_balancer import (
     LoadBalancerConfigSchema,
     LoadBalancerResultSchema,
@@ -49,4 +55,8 @@ __all__ = [
     "SavedEndpointCreate",
     "SavedEndpointUpdate",
     "SavedEndpointResponse",
+    "UnifiedHistoryItem",
+    "PaginatedHistoryResponse",
+    "MetricComparison",
+    "RunComparisonResponse",
 ]

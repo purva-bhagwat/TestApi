@@ -117,3 +117,58 @@ export interface Project {
   created_at: string;
   endpoints?: SavedEndpoint[];
 }
+
+export interface UnifiedHistoryItem {
+  id: string;
+  test_type: "single" | "load" | "balancer";
+  timestamp: string;
+  url: string;
+  target_urls?: string[];
+  method: string;
+  status: string;
+  status_code?: number;
+  duration_seconds?: number;
+  latency_avg_ms?: number;
+  p50_ms?: number;
+  p90_ms?: number;
+  p95_ms?: number;
+  p99_ms?: number;
+  concurrency?: number;
+  total_requests?: number;
+  success_count?: number;
+  failure_count?: number;
+  success_rate?: number;
+  rps?: number;
+  project_id?: string;
+  error_message?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface PaginatedHistoryResponse {
+  items: UnifiedHistoryItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface MetricComparison {
+  delta_rps: number;
+  pct_rps_diff: number;
+  delta_p50_ms?: number;
+  pct_p50_diff?: number;
+  delta_p90_ms?: number;
+  pct_p90_diff?: number;
+  delta_p99_ms?: number;
+  pct_p99_diff?: number;
+  delta_error_rate: number;
+  delta_duration_seconds: number;
+  verdict: "improved" | "regressed" | "equivalent";
+  summary: string;
+}
+
+export interface RunComparisonResponse {
+  run_a: UnifiedHistoryItem;
+  run_b: UnifiedHistoryItem;
+  comparison: MetricComparison;
+}

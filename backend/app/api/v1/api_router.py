@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    analytics,
     health,
     load_balancer,
     load_runner,
@@ -22,4 +23,10 @@ api_router.include_router(
 )
 api_router.include_router(
     projects.router, prefix="/projects", tags=["Projects & Collections"]
+)
+api_router.include_router(
+    analytics.router, prefix="/analytics", tags=["Analytics & History"]
+)
+api_router.include_router(
+    analytics.router, prefix="/history", tags=["Analytics & History"]
 )
